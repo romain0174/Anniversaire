@@ -320,6 +320,17 @@ def page_merci():
         aller("accueil")
 
 
+def supprimer_admin(ids, libelle):
+    """Callback du bouton de suppression de l'espace organisateur."""
+    try:
+        base().table(TABLE).delete().in_("id", ids).execute()
+        tous.clear()
+        st.session_state.admin_msg = f"✅ Supprimé : {libelle}."
+    except Exception:
+        st.session_state.admin_msg = "❌ La suppression a échoué. Réessayez."
+    st.session_state.admin_confirm = False
+
+
 def espace_organisateur():
     with st.expander("🔒 Espace organisateur"):
         mdp = st.text_input("Mot de passe", type="password", key="admin_mdp")
@@ -328,6 +339,9 @@ def espace_organisateur():
         if mdp != st.secrets["ADMIN_PASSWORD"]:
             st.error("Mot de passe incorrect.")
             return
+
+        if st.session_state.get("admin_msg"):
+            st.info(st.session_state.pop("admin_msg"))
 
         lignes = tous()
         if not lignes:
@@ -354,6 +368,45 @@ def espace_organisateur():
             df.to_csv(index=False).encode("utf-8-sig"),
             "invites.csv",
             "text/csv",
+        )
+
+        st.write("---")
+        st.write("**Supprimer une personne de la liste**")
+        par_id = {r["id"]: r for r in lignes}
+
+        def etiquette(i):
+            r = par_id[i]
+            texte = f'{r["prenom"]} {r["nom"]}'
+            if r["groupe"] != r["cle"]:
+                texte += " — accompagne " + noms.get(r["groupe"], "(désisté)")
+            if not r["vient"]:
+                texte += " — ne vient pas"
+            return texte
+
+        choix = st.selectbox(
+            "Personne à supprimer", list(par_id), format_func=etiquette, key="admin_suppr"
+        )
+        cible = par_id[choix]
+        accompagnants = [
+            r for r in lignes if r["groupe"] == cible["cle"] and r["id"] != cible["id"]
+        ]
+        ids = [cible["id"]]
+        libelle = f'{cible["prenom"]} {cible["nom"]}'
+        if accompagnants:
+            if st.checkbox(
+                "Supprimer aussi ses accompagnants : "
+                + ", ".join(a["prenom"] for a in accompagnants),
+                key="admin_avec_accomp",
+            ):
+                ids += [a["id"] for a in accompagnants]
+                libelle += " et ses accompagnants"
+        confirme = st.checkbox("Je confirme la suppression", key="admin_confirm")
+        st.button(
+            "🗑️ Supprimer",
+            disabled=not confirme,
+            on_click=supprimer_admin,
+            args=(ids, libelle),
+            key="admin_btn_suppr",
         )
 
 
