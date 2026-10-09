@@ -6,7 +6,7 @@ import streamlit as st
 from supabase import create_client
 
 # ---------- À PERSONNALISER ----------
-TITRE = "🎂 Anniversaire de Romain"
+TITRE = "🎂 Anniversaire de Mémé"
 INFOS = "Date, heure et lieu : à compléter"  # mets "" pour ne rien afficher
 CATEGORIES = [
     "🥜 Apéro",
@@ -110,6 +110,26 @@ def enregistrer(personnes, vient, apports=None):
         return False
 
     cles = [cle(p, q) for p, q in personnes]
+    if len(set(cles)) != len(cles):
+        st.error("Deux personnes ont le même nom. Merci de vérifier.")
+        return False
+
+    try:
+        existants = (
+            base().table(TABLE).select("cle,prenom,nom").in_("cle", cles).execute().data
+        )
+    except Exception:
+        st.error("Un problème est survenu. Merci de réessayer dans un instant.")
+        return False
+    if existants:
+        noms = ", ".join(sorted({affichage(r["prenom"], r["nom"]) for r in existants}))
+        st.error(
+            f"⚠️ {noms} : déjà inscrit(e) dans la liste. "
+            "Pour changer la réponse, utilisez d'abord « Je me désiste », "
+            "puis inscrivez-vous de nouveau."
+        )
+        return False
+
     lignes = [
         {
             "cle": k,
