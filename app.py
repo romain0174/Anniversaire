@@ -7,7 +7,7 @@ from supabase import create_client
 
 # ---------- À PERSONNALISER ----------
 TITRE = "🎂 Anniversaire de Mémé"
-INFOS = "Date, heure et lieu : à compléter"  # mets "" pour ne rien afficher
+INFOS = "31 octobre 2026, Gennevilliers"
 CATEGORIES = [
     "🥜 Apéro",
     "🧀 Fromage",
